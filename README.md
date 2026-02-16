@@ -11,11 +11,12 @@ go install github.com/vadmeste/decom-eta@latest
 ## Usage
 
 ```
-decom-eta [-config-dir <path>] <alias>
+decom-eta [-config-dir <path>] [-watch] <alias>
 ```
 
 - `<alias>` — the mc alias name for your MinIO cluster
 - `-config-dir` — path to the mc config directory (default: `~/.mc`)
+- `-watch` — continuously monitor decommission status, refreshing every 10 seconds
 
 The tool reads the alias credentials from mc's `config.json` and queries the MinIO admin API for pool decommission status.
 

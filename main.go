@@ -77,38 +77,12 @@ func newAdminClient(ac aliasConfig) (*madmin.AdminClient, error) {
 	return client, nil
 }
 
-func main() {
-	configDir := flag.String("config-dir", "", "path to mc config directory (default: ~/.mc)")
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: %s [flags] <alias>\n", os.Args[0])
-		flag.PrintDefaults()
-	}
-	flag.Parse()
-
-	if flag.NArg() != 1 {
-		flag.Usage()
-		os.Exit(1)
-	}
-
-	alias := flag.Arg(0)
-
-	ac, err := loadAlias(alias, *configDir)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
-	}
-
-	client, err := newAdminClient(ac)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error creating admin client: %v\n", err)
-		os.Exit(1)
-	}
-
+func printStatus(client *madmin.AdminClient) {
 	ctx := context.Background()
 	pools, err := client.ListPoolsStatus(ctx)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error listing pool status: %v\n", err)
-		os.Exit(1)
+		return
 	}
 
 	hasDraining := false
@@ -168,6 +142,46 @@ func main() {
 
 	if !hasDraining {
 		fmt.Println("No pools are currently being decommissioned.")
+	}
+}
+
+func main() {
+	configDir := flag.String("config-dir", "", "path to mc config directory (default: ~/.mc)")
+	watch := flag.Bool("watch", false, "continuously monitor decommission status (every 10s)")
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage: %s [flags] <alias>\n", os.Args[0])
+		flag.PrintDefaults()
+	}
+	flag.Parse()
+
+	if flag.NArg() != 1 {
+		flag.Usage()
+		os.Exit(1)
+	}
+
+	alias := flag.Arg(0)
+
+	ac, err := loadAlias(alias, *configDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	client, err := newAdminClient(ac)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error creating admin client: %v\n", err)
+		os.Exit(1)
+	}
+
+	if !*watch {
+		printStatus(client)
+		return
+	}
+
+	for {
+		fmt.Print("\033[H\033[2J")
+		printStatus(client)
+		time.Sleep(10 * time.Second)
 	}
 }
 
